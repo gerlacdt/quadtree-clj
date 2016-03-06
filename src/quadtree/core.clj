@@ -128,6 +128,15 @@
         (filter (fn [point]
                   (q-contains? bounding-box point)) (-> node :points))))
 
+(defn number-of-nodes [node]
+  "Returns the number of all nodes in the given root node (tree)."
+  (cond (leaf? node) 1
+        :else (+ 1
+                 (number-of-nodes (-> node :northWest))
+                 (number-of-nodes (-> node :northEast))
+                 (number-of-nodes (-> node :southWest))
+                 (number-of-nodes (-> node :southEast)))))
+
 ;; (defn -main
 ;;   "I don't do a whole lot ... yet."
 ;;   [& args]
