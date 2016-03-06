@@ -55,49 +55,49 @@
                  :se {:x (-> boundary :se :x)
                       :y (-> boundary :se :y)}}}))
 
-(defn insert-contained-points [points boundary]
-  "Returns a seq which contains only the points which are in the
-  area of the given boundary"
-  (filter (fn [p]
-            (q-contains? boundary p)) points))
+(defn find-points-to-insert [points boundary]
+  "Returns a map with :included and :rest points to insert.
+The :included one will be inserted. This is needed for deduplicating
+of fringe-points."
+  (reduce (fn [acc p]
+            (if (q-contains? boundary p)
+              (update-in acc [:included] conj p)
+              (update-in acc [:rest] conj p))) {:included [] :rest []} points))
 
-
-;; TODO no duplicate insertion of points which are on border!
 (defn subdivide [{:keys [:boundary :points] :as node}]
   "Divides given node into 4 subnodes and returns them."
-  (let [ boundaries (get-child-boundaries boundary)
+  (let [boundaries (get-child-boundaries boundary)
+        points-northWest (find-points-to-insert
+                          points (-> boundaries :northWest))
+        points-northEast (find-points-to-insert
+                          (-> points-northWest :rest) (-> boundaries :northEast))
+        points-southWest (find-points-to-insert
+                          (-> points-northEast :rest) (-> boundaries :southWest))
+        points-southEast (find-points-to-insert
+                          (-> points-southWest :rest) (-> boundaries :southEast))
         northWest (QuadTreeNode. (-> boundaries :northWest)
-                                 (insert-contained-points
-                                  points
-                                  (-> boundaries :northWest))
+                                 (-> points-northWest :included)
                                  nil nil nil nil)
         northEast (QuadTreeNode. (-> boundaries :northEast)
-                                 (insert-contained-points
-                                  points
-                                  (-> boundaries :northEast))
+                                 (-> points-northEast :included)
                                  nil nil nil nil)
         southWest (QuadTreeNode. (-> boundaries :southWest)
-                                 (insert-contained-points
-                                  points
-                                  (-> boundaries :southWest))
+                                 (->  points-southWest :included)
                                  nil nil nil nil)
         southEast (QuadTreeNode. (-> boundaries :southEast)
-                                 (insert-contained-points
-                                  points
-                                  (-> boundaries :southEast))
+                                 (-> points-southEast :included)
                                  nil nil nil nil)]
     {:northWest northWest :northEast northEast
      :southWest southWest :southEast southEast}))
 
 
 (defn insert [tree point]
-  ;; ignore point which does not belong in this node
   (cond
     (not (q-contains? (-> tree :boundary) point)) tree
-    (and (not (-> tree :northWest))
+    (and (leaf? tree)
          (< (count (-> tree :points)) maxPoints))
     (QuadTreeNode. (-> tree :boundary) (conj (-> tree :points) point) nil nil nil nil)
-    (not (nil? (-> tree :northWest)))
+    (not (leaf? tree))
     (QuadTreeNode. (-> tree :boundary) []
                    (insert (-> tree :northWest) point)
                    (insert (-> tree :northEast) point)
@@ -105,11 +105,30 @@
                    (insert (-> tree :southEast) point))
     :else
     (let [child-nodes (subdivide tree)]
-      (QuadTreeNode. (-> tree :boundary) []
-                     (insert (-> child-nodes :northWest) point)
-                     (insert (-> child-nodes :northEast) point)
-                     (insert (-> child-nodes :southWest) point)
-                     (insert (-> child-nodes :southEast) point)))))
+      (cond (q-contains? (-> child-nodes :northWest :boundary) point)
+            (QuadTreeNode. (-> tree :boundary) []
+                           (insert (-> child-nodes :northWest) point)
+                           (-> child-nodes :northEast)
+                           (-> child-nodes :southWest)
+                           (-> child-nodes :southEast))
+            (q-contains? (-> child-nodes :northEast :boundary) point)
+            (QuadTreeNode. (-> tree :boundary) []
+                           (-> child-nodes :northWest)
+                           (insert (-> child-nodes :northEast) point)
+                           (-> child-nodes :southWest)
+                           (-> child-nodes :southEast))
+            (q-contains? (-> child-nodes :southWest :boundary) point)
+            (QuadTreeNode. (-> tree :boundary) []
+                           (-> child-nodes :northWest)
+                           (-> child-nodes :northEast)
+                           (insert (-> child-nodes :southWest) point)
+                           (-> child-nodes :southEast))
+            :else
+            (QuadTreeNode. (-> tree :boundary) []
+                           (-> child-nodes :northWest)
+                           (-> child-nodes :northEast)
+                           (-> child-nodes :southWest)
+                           (insert (-> child-nodes :southEast) point))))))
 
 (defn insert-points [tree points]
   "Convinient functions in order to insert multiple points at once."
@@ -136,6 +155,16 @@
                  (number-of-nodes (-> node :northEast))
                  (number-of-nodes (-> node :southWest))
                  (number-of-nodes (-> node :southEast)))))
+
+(defn all-values [node]
+  "Returns all values of the given quadtree node recusivly (include
+  all child nodes)"
+  (cond
+    (leaf? node) (-> node :points)
+    :else (concat (all-values (-> node :northWest))
+             (all-values (-> node :northEast))
+             (all-values (-> node :southWest))
+             (all-values (-> node :southEast)))))
 
 ;; (defn -main
 ;;   "I don't do a whole lot ... yet."
