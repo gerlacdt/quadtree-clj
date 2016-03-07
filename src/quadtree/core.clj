@@ -1,10 +1,13 @@
 (ns quadtree.core
   (:gen-class))
 
-(def maxPoints 1)
+(def maxPoints 100)
 
 (def boundary {:nw {:x 0 :y 10}
                :se {:x 10 :y 0}})
+
+(def world-boundary {:nw {:x -180 :y 90}
+                     :se {:x 180 :y -90}})
 
 (defn q-contains? [boundary point]
   "Returns true if boundary contains given point."
@@ -26,6 +29,9 @@
   (if (-> node :northWest)
     false
     true))
+
+(defrecord Point
+    [x y data])
 
 (defrecord QuadTreeNode
     [boundary points
@@ -165,6 +171,15 @@ of fringe-points."
              (all-values (-> node :northEast))
              (all-values (-> node :southWest))
              (all-values (-> node :southEast)))))
+
+;; stuttgart bounding box
+;; nw: 9.0439483  48.8042085
+;; se: 9.2748333  48.7096035
+;;  --> 208
+
+;; all car2gos in Stuttgart 363
+;; nw: 8.8342369  48.857922
+;; sw: 9.3879723  48.6405699
 
 ;; (defn -main
 ;;   "I don't do a whole lot ... yet."
