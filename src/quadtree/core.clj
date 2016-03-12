@@ -172,6 +172,9 @@ of fringe-points."
              (all-values (-> node :southWest))
              (all-values (-> node :southEast)))))
 
+(defn init-world []
+  (make-quadtree world-boundary))
+
 ;; stuttgart bounding box
 ;; nw: 9.0439483  48.8042085
 ;; se: 9.2748333  48.7096035
