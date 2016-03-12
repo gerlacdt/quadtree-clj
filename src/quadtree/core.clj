@@ -1,7 +1,7 @@
 (ns quadtree.core
   (:gen-class))
 
-(def maxPoints 100)
+;; (def maxPoints 100)
 
 (def boundary {:nw {:x 0 :y 10}
                :se {:x 10 :y 0}})
@@ -11,11 +11,13 @@
 
 (defn q-contains? [boundary point]
   "Returns true if boundary contains given point."
-  (cond (< (:x point) (-> boundary :nw :x)) false
-        (> (:x point) (-> boundary :se :x)) false
-        (> (:y point) (-> boundary :nw :y)) false
-        (< (:y point) (-> boundary :se :y)) false
-        :else true))
+  (do
+    ;; (println "point: " point)
+    (cond (< (:x point) (-> boundary :nw :x)) false
+          (> (:x point) (-> boundary :se :x)) false
+          (> (:y point) (-> boundary :nw :y)) false
+          (< (:y point) (-> boundary :se :y)) false
+          :else true)))
 
 (defn q-intersects? [box1 box2]
   "Returns true if given bounding boxes intersect."
@@ -36,10 +38,14 @@
 (defrecord QuadTreeNode
     [boundary points
      northWest northEast
-     southWest southEast])
+     southWest southEast
+     maxPoints])
 
-(defn make-quadtree [boundary]
-  (QuadTreeNode. boundary [] nil nil nil nil))
+(defn make-quadtree
+  ([boundary]
+   (QuadTreeNode. boundary [] nil nil nil nil 100))
+  ([boundary maxPoints]
+   (QuadTreeNode. boundary [] nil nil nil nil maxPoints)))
 
 (defn get-child-boundaries [boundary]
   (let [mid-x (/ (+ (-> boundary :nw :x) (-> boundary :se :x)) 2)
@@ -83,16 +89,16 @@ of fringe-points."
                           (-> points-southWest :rest) (-> boundaries :southEast))
         northWest (QuadTreeNode. (-> boundaries :northWest)
                                  (-> points-northWest :included)
-                                 nil nil nil nil)
+                                 nil nil nil nil (-> node :maxPoints))
         northEast (QuadTreeNode. (-> boundaries :northEast)
                                  (-> points-northEast :included)
-                                 nil nil nil nil)
+                                 nil nil nil nil (-> node :maxPoints))
         southWest (QuadTreeNode. (-> boundaries :southWest)
                                  (->  points-southWest :included)
-                                 nil nil nil nil)
+                                 nil nil nil nil (-> node :maxPoints))
         southEast (QuadTreeNode. (-> boundaries :southEast)
                                  (-> points-southEast :included)
-                                 nil nil nil nil)]
+                                 nil nil nil nil (-> node :maxPoints))]
     {:northWest northWest :northEast northEast
      :southWest southWest :southEast southEast}))
 
@@ -101,14 +107,16 @@ of fringe-points."
   (cond
     (not (q-contains? (-> tree :boundary) point)) tree
     (and (leaf? tree)
-         (< (count (-> tree :points)) maxPoints))
-    (QuadTreeNode. (-> tree :boundary) (conj (-> tree :points) point) nil nil nil nil)
+         (< (count (-> tree :points)) (-> tree :maxPoints)))
+    (QuadTreeNode. (-> tree :boundary) (conj (-> tree :points) point)
+                   nil nil nil nil (-> tree :maxPoints))
     (not (leaf? tree))
     (QuadTreeNode. (-> tree :boundary) []
                    (insert (-> tree :northWest) point)
                    (insert (-> tree :northEast) point)
                    (insert (-> tree :southWest) point)
-                   (insert (-> tree :southEast) point))
+                   (insert (-> tree :southEast) point)
+                   (-> tree :maxPoints))
     :else
     (let [child-nodes (subdivide tree)]
       (cond (q-contains? (-> child-nodes :northWest :boundary) point)
@@ -116,25 +124,29 @@ of fringe-points."
                            (insert (-> child-nodes :northWest) point)
                            (-> child-nodes :northEast)
                            (-> child-nodes :southWest)
-                           (-> child-nodes :southEast))
+                           (-> child-nodes :southEast)
+                           (-> tree :maxPoints))
             (q-contains? (-> child-nodes :northEast :boundary) point)
             (QuadTreeNode. (-> tree :boundary) []
                            (-> child-nodes :northWest)
                            (insert (-> child-nodes :northEast) point)
                            (-> child-nodes :southWest)
-                           (-> child-nodes :southEast))
+                           (-> child-nodes :southEast)
+                           (-> tree :maxPoints))
             (q-contains? (-> child-nodes :southWest :boundary) point)
             (QuadTreeNode. (-> tree :boundary) []
                            (-> child-nodes :northWest)
                            (-> child-nodes :northEast)
                            (insert (-> child-nodes :southWest) point)
-                           (-> child-nodes :southEast))
+                           (-> child-nodes :southEast)
+                           (-> tree :maxPoints))
             :else
             (QuadTreeNode. (-> tree :boundary) []
                            (-> child-nodes :northWest)
                            (-> child-nodes :northEast)
                            (-> child-nodes :southWest)
-                           (insert (-> child-nodes :southEast) point))))))
+                           (insert (-> child-nodes :southEast) point)
+                           (-> tree :maxPoints))))))
 
 (defn insert-points [tree points]
   "Convinient functions in order to insert multiple points at once."

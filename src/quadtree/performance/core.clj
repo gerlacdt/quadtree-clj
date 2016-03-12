@@ -1,6 +1,6 @@
 (ns quadtree.performance.core
   (:require [cheshire.core :refer :all]
-            [quadtree.core :as quad])
+            [quadtree.core :as quadtree])
   (:import [quadtree.core Point]))
 
 ;; read car2go Feature Collections
@@ -23,10 +23,4 @@
                               feature
                               ))
                     features)]
-    (quad/insert-points tree points)))
-
-;; trace time
-
-;; check correctness with some queries
-
-;; track time
+    (quadtree/insert-points tree points)))

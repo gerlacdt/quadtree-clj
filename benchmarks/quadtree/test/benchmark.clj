@@ -1,32 +1,33 @@
 (ns quadtree.test.benchmark
   (:require [quadtree.core :as quadtree]
+            [quadtree.utils :as qutils]
             [cheshire.core :as json]
             [criterium.core :as bench]
-            [clojure.test :refer :all])
+            [clojure.test :refer :all]
+            [clojure.pprint :refer :all])
   (:import [quadtree.core Point]))
 
-(defn load-geojson-file [filename]
-  "Returns extracted points from given filename (usually geoJSON)"
-  (json/parse-stream (clojure.java.io/reader filename) true))
-
-(defn get-points [feature-collections]
-  (mapcat (fn [feature-collection]
-            (-> feature-collection :features))
-          feature-collections))
-
-(defn bulk-insert [tree features]
-  (let [points (map (fn [feature]
-                      (Point. (first (-> feature :geometry :coordinates))
-                              (second (-> feature :geometry :coordinates))
-                              feature
-                              ))
-                    features)]
-    (quadtree/insert-points tree points)))
-
-(def feature-collections (load-geojson-file "files/feature_collections.json"))
-(def features (get-points feature-collections))
+;; prepare car2go geoJSON insertion in quadtree
+(def feature-collections (qutils/load-geojson-file "files/feature_collections.json"))
+(def features (qutils/get-features feature-collections))
 (def q-world (quadtree/init-world))
 
-(deftest insert-all-car2gos
-  (let [root (time (bulk-insert q-world features))]
-    'done))
+(defn insert-all-car2gos []
+  (let [root (qutils/time (partial qutils/bulk-insert-geojson q-world features)
+                          "11,000 car2gos geoJSONs inserted")]
+    (qutils/extract-time root)))
+
+(defn insert-random-points [n]
+  (let [points-n (take n (qutils/random-points))
+        root-n (qutils/time (partial
+                             quadtree/insert-points q-world
+                             points-n)
+                            (str n " inserted"))]
+    (qutils/extract-time root-n)))
+
+(deftest car2gos-test
+  (pprint (qutils/summary-time (take 5 (repeatedly insert-all-car2gos)))))
+
+(deftest random-points-test
+  (pprint (qutils/summary-time (take 5
+                                     (repeatedly #(insert-random-points 100000))))))
