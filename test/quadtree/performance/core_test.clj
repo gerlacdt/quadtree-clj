@@ -1,8 +1,7 @@
 (ns quadtree.performance.core-test
   (:require [clojure.test :refer :all]
             [quadtree.core :refer :all]
-            [quadtree.utils :as qutils]
-            [quadtree.performance.core :refer :all])
+            [quadtree.utils :as qutils])
   (:import [quadtree.core Point]))
 
 (deftest performance-test
