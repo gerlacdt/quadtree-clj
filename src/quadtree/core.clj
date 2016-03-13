@@ -1,29 +1,7 @@
 (ns quadtree.core
   (:gen-class))
 
-(def world-boundary {:nw {:x -180 :y 90}
-                     :se {:x 180 :y -90}})
-
-(defn q-contains? [boundary point]
-  "Returns true if boundary contains given point."
-  (cond (< (:x point) (-> boundary :nw :x)) false
-        (> (:x point) (-> boundary :se :x)) false
-        (> (:y point) (-> boundary :nw :y)) false
-        (< (:y point) (-> boundary :se :y)) false
-        :else true))
-
-(defn q-intersects? [box1 box2]
-  "Returns true if given bounding boxes intersect."
-  (not (or  (> (-> box1 :nw :x) (-> box2 :se :x))
-            (< (-> box1 :se :x) (-> box2 :nw :x))
-            (< (-> box1 :nw :y) (-> box2 :se :y))
-            (> (-> box1 :se :y) (-> box2 :nw :y)))))
-
-(defn leaf? [node]
-  "Returns true if given node is a leaf node."
-  (if (-> node :northWest)
-    false
-    true))
+;; data structures
 
 (defrecord Point
     [x y data])
@@ -34,13 +12,31 @@
      southWest southEast
      maxPoints])
 
-(defn make-quadtree
-  ([boundary]
-   (QuadTreeNode. boundary [] nil nil nil nil 100))
-  ([boundary maxPoints]
-   (QuadTreeNode. boundary [] nil nil nil nil maxPoints)))
 
-(defn get-child-boundaries [boundary]
+;; private
+
+(defn- q-contains? [boundary point]
+  "Returns true if boundary contains given point."
+  (cond (< (:x point) (-> boundary :nw :x)) false
+        (> (:x point) (-> boundary :se :x)) false
+        (> (:y point) (-> boundary :nw :y)) false
+        (< (:y point) (-> boundary :se :y)) false
+        :else true))
+
+(defn- q-intersects? [box1 box2]
+  "Returns true if given bounding boxes intersect."
+  (not (or  (> (-> box1 :nw :x) (-> box2 :se :x))
+            (< (-> box1 :se :x) (-> box2 :nw :x))
+            (< (-> box1 :nw :y) (-> box2 :se :y))
+            (> (-> box1 :se :y) (-> box2 :nw :y)))))
+
+(defn- leaf? [node]
+  "Returns true if given node is a leaf node."
+  (if (-> node :northWest)
+    false
+    true))
+
+(defn- get-child-boundaries [boundary]
   (let [mid-x (/ (+ (-> boundary :nw :x) (-> boundary :se :x)) 2)
         mid-y (/ (+ (-> boundary :nw :y) (-> boundary :se :y)) 2)]
     {:northWest {:nw {:x (-> boundary :nw :x)
@@ -60,7 +56,7 @@
                  :se {:x (-> boundary :se :x)
                       :y (-> boundary :se :y)}}}))
 
-(defn find-points-to-insert [points boundary]
+(defn- find-points-to-insert [points boundary]
   "Returns a map with :included and :rest points to insert.
 The :included one will be inserted. This is needed for deduplicating
 of fringe-points."
@@ -69,7 +65,7 @@ of fringe-points."
               (update-in acc [:included] conj p)
               (update-in acc [:rest] conj p))) {:included [] :rest []} points))
 
-(defn subdivide [{:keys [:boundary :points] :as node}]
+(defn- subdivide [{:keys [:boundary :points] :as node}]
   "Divides given node into 4 subnodes and returns them."
   (let [boundaries (get-child-boundaries boundary)
         points-northWest (find-points-to-insert
@@ -95,6 +91,25 @@ of fringe-points."
     {:northWest northWest :northEast northEast
      :southWest southWest :southEast southEast}))
 
+
+;; public
+
+;; creation
+
+(defn make-quadtree
+  ([boundary]
+   (QuadTreeNode. boundary [] nil nil nil nil 100))
+  ([boundary maxPoints]
+   (QuadTreeNode. boundary [] nil nil nil nil maxPoints)))
+
+
+(def world-boundary {:nw {:x -180 :y 90}
+                     :se {:x 180 :y -90}})
+
+(defn init-world []
+  (make-quadtree world-boundary))
+
+;; insertion
 
 (defn insert [tree point]
   (cond
@@ -145,6 +160,8 @@ of fringe-points."
   "Convenient function in order to insert multiple points at once."
   (reduce insert tree points))
 
+;; querying
+
 (defn query [node bounding-box]
   "Returns all values which are contained in the given bounding box."
   (cond (not (q-intersects? (-> node :boundary) bounding-box))
@@ -157,6 +174,8 @@ of fringe-points."
         :else
         (filter (fn [point]
                   (q-contains? bounding-box point)) (-> node :points))))
+
+;; other functions
 
 (defn number-of-nodes [node]
   "Returns the number of all nodes in the given root node (tree)."
@@ -173,9 +192,6 @@ of fringe-points."
   (cond
     (leaf? node) (-> node :points)
     :else (concat (all-values (-> node :northWest))
-             (all-values (-> node :northEast))
-             (all-values (-> node :southWest))
-             (all-values (-> node :southEast)))))
-
-(defn init-world []
-  (make-quadtree world-boundary))
+                  (all-values (-> node :northEast))
+                  (all-values (-> node :southWest))
+                  (all-values (-> node :southEast)))))
