@@ -97,6 +97,9 @@ of fringe-points."
 ;; creation
 
 (defn make-quadtree
+  "Creates a quadtree with the given boundary and set the maximum
+  number of points in a leaf to the given value. If maxPoints not
+  given use 100 as default."
   ([boundary]
    (QuadTreeNode. boundary [] nil nil nil nil 100))
   ([boundary maxPoints]
@@ -107,11 +110,15 @@ of fringe-points."
                      :se {:x 180 :y -90}})
 
 (defn init-world []
+  "Convenient function to initialize a quadtree which spans the
+  earth. NorthWest: {:x -180 :y 90} and SouthEast {:x 180 :y -90}"
   (make-quadtree world-boundary))
 
 ;; insertion
 
 (defn insert [tree point]
+  "Inserts the given point into given quadtree. Returns a newly
+   quadtree and does not mutate the given tree."
   (cond
     (not (q-contains? (-> tree :boundary) point)) tree
     (and (leaf? tree)
@@ -178,7 +185,7 @@ of fringe-points."
 ;; other functions
 
 (defn number-of-nodes [node]
-  "Returns the number of all nodes in the given root node (tree)."
+  "Returns the number of all nodes in the given quadtree."
   (cond (leaf? node) 1
         :else (+ 1
                  (number-of-nodes (-> node :northWest))
