@@ -2,7 +2,6 @@
   (:require [quadtree.core :as quadtree]
             [quadtree.utils :as qutils]
             [cheshire.core :as json]
-            [criterium.core :as bench]
             [clojure.test :refer :all]
             [clojure.pprint :refer :all])
   (:import [quadtree.core Point]))

@@ -1,37 +1,16 @@
-# quadtree-clj
+;;; usage
 
-This is a simple quadtree implementation in clojure. The quadtree is immutable
-and therefore thread-safe.
-
-
-## Leiningen
-
-Leiningen provides the default "test" task.
-
-    $ lein test
-
-Additionally there exist a "benchmark" task.
-
-    $ lein benchmark
-
-## Usage
-
-```clojure
-[quadtree-clj "0.0.1"]
+;; [quadtree-clj "0.0.1"]
 
 ;; in your ns statement
 (ns your.ns
   (:require [quadtree.core :as qtree])
   (:import [quadtree.core Point]))
-```
 
 
-## Examples
+;;; examples
 
-### Creation / Insertion
-
-```clojure
-; create quadtree with boundary and max 100 points in a leaf node
+;; create quadtree with boundary and max 100 points in a leaf node
 
 (def boundary {:nw {:x 0 :y 10} :se {:x 10 :y 0}}) ; define a bounding box
 
@@ -56,11 +35,9 @@ Additionally there exist a "benchmark" task.
 
 ;; (defrecord Point
 ;;      [x y data])
-```
 
-### Querying and other stuff
+;;; querying
 
-```clojure
 ;; get all points in boundary
 
 (def bounding-box {:nw {:x 0 :y 5} :se {:x 5 :y 0}})
@@ -73,10 +50,3 @@ Additionally there exist a "benchmark" task.
 ;; get number of nodes in quadtree (intermediate nodes + leafs)
 
 (qtree/number-of-nodes tree)
-```
-## License
-
-Copyright © 2016 Daniel Gerlach
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
