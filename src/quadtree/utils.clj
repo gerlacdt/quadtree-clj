@@ -22,7 +22,7 @@
                                     0
                                     result-list)
                             (count result-list))]
-    {:average-duration average-duration
+    {:average-duration-ms average-duration
      :message (-> (first result-list) :message)
      :count (count result-list)}))
 
