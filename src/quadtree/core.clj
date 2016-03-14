@@ -182,6 +182,22 @@ of fringe-points."
         (filter (fn [point]
                   (q-contains? bounding-box point)) (-> node :points))))
 
+(defn delete [node predicate-fn]
+  "Returns a quadtree without points which match the given predicate
+  function. Not considering geo-spatial index. Hence deletion has O(n)
+  complexity."
+  (cond (leaf? node)
+        (QuadTreeNode. (-> node :boundary)
+                       (remove predicate-fn (-> node :points))
+                       nil nil nil nil (-> node :maxPoints))
+        :else (QuadTreeNode. (-> node :boundary)
+                             []
+                             (delete (-> node :northWest) predicate-fn)
+                             (delete (-> node :northEast) predicate-fn)
+                             (delete (-> node :southWest) predicate-fn)
+                             (delete (-> node :southEast) predicate-fn)
+                             (-> node :maxPoints))))
+
 ;; other functions
 
 (defn number-of-nodes [node]

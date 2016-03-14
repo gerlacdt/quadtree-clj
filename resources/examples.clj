@@ -50,3 +50,14 @@
 ;; get number of nodes in quadtree (intermediate nodes + leafs)
 
 (qtree/number-of-nodes tree)
+
+
+;; deletion of points
+
+(def tree (qtree/insert-points world [(Point. 1 1 {:key "foo"})
+                                      (Point. 1 7 {:key "bar"})]))
+
+;; deletes all points with point.data.key === "foo"
+;; delete operation does not consider geo-spatial index, so it has
+;; linear complexity O(n)
+(qtree/delete tree (fn [point] (= (-> point :data :key) "foo")))

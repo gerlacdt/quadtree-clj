@@ -30,6 +30,15 @@
   (let [result (qutils/time (partial quadtree/query root boundary) msg)]
     (qutils/extract-time result)))
 
+(defn delete-car2gos [root msg]
+  (let [result (qutils/time
+                (partial quadtree/delete
+                         root
+                         (fn [point] (= "car2go"
+                                        (-> point :data :properties :meta :provider))))
+                msg)]
+    result))
+
 (deftest car2gos-test
   (pprint (qutils/summary-time (take 2 (repeatedly
                                         #(qutils/extract-time (insert-all-car2go-time)))))))
@@ -55,3 +64,10 @@
                    (repeatedly #(query root
                                        {:nw {:x 0 :y 10} :se {:x 10 :y 0}}
                                        "query random points 100,000")))))))
+
+(deftest delete-car2gos-test
+  (let [world-car2gos (qutils/bulk-insert-geojson q-world features)]
+    (pprint (qutils/summary-time
+             (take 10
+                   (repeatedly #(delete-car2gos world-car2gos
+                                                "delete all car2gos")))))))

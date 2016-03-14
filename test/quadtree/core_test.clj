@@ -21,9 +21,23 @@
       (testing "querying"
         (is (= (Point. 1 1 {}) (first (query t4 {:nw {:x 0 :y 5} :se {:x 5 :y 0}}))))
         (is (= 4 (count (query t4 {:nw {:x 0 :y 10} :se {:x 10 :y 0}}))))
-        (is (= (set (list (Point. 1 1 {}) (Point. 1 7 {}))) (set (query t4 {:nw {:x 0 :y 10}
-                                                                :se {:x 5 :y 0}}))))))))
+        (is (= (set (list (Point. 1 1 {})
+                          (Point. 1 7 {}))) (set (query t4 {:nw {:x 0 :y 10}
+                                                            :se {:x 5 :y 0}}))))))))
 
+(deftest quadtree-deletion-test
+  (testing "quadtree deletion"
+    (let [boundary {:nw {:x 0 :y 10} :se {:x 10 :y 0}}
+          t (make-quadtree boundary 1)
+          t4 (insert-points t [(Point. 1 1 {:key "foo"}) (Point. 1 7 {:key "bar"})
+                               (Point. 7 1 {:key "foo"}) (Point. 7 7 {:key "bar"})])
+          t2 (delete t4 (fn [p] (= (-> p :data :key) "foo")))]
+      (is (= 2 (count (all-values t2))))
+      (is (= 5 (number-of-nodes t2)))
+      (is (and (some
+                (fn [x] (= x (Point. 1 7 {:key "bar"}))) (all-values t2))
+               (some
+                (fn [x] (= x (Point. 7 7 {:key "bar"}))) (all-values t2)))))))
 
 
 ;; geojson test (read geojson, map to points, insert them into quadtree)
