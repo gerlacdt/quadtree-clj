@@ -1,11 +1,10 @@
-(defproject quadtree "0.1.0-SNAPSHOT"
+(defproject quadtree-clj "0.0.1"
   :description "Simple quadtree implementation in clojure."
   :url "https://github.com/gerlacdt/quadtree-clj"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [cheshire "5.5.0"]]
-  :main ^:skip-aot quadtree.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
              :repl {:plugins [[cider/cider-nrepl "0.11.0-SNAPSHOT"]]}
